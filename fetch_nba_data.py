@@ -7,9 +7,11 @@ from nba_api.stats.endpoints import (
     LeagueDashPtDefend,
     LeagueHustleStatsPlayer,
     DraftCombineStats,
+    TeamPlayerOnOffSummary,
 )
+from nba_api.stats.static import teams
 
-SEASON = "2024-25"
+SEASON = "2025-26"
 DELAY = 1.0
 OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "raw")
 
@@ -38,11 +40,11 @@ def fetch_base_stats():
         measure_type_detailed_defense="Base",
         per_mode_detailed="PerGame",
     ).get_data_frames()[0]
-    return df[["PLAYER_ID", "PTS", "REB", "AST", "STL", "BLK", "TOV"]]
+    return df[["PLAYER_ID", "GP", "MIN", "PTS", "REB", "AST", "STL", "BLK", "TOV"]]
 
 
 def fetch_advanced_stats():
-    print("Fetching advanced stats (TS%, OffRtg, DefRtg)...")
+    print("Fetching advanced stats (TS%)...")
     time.sleep(DELAY)
     df = LeagueDashPlayerStats(
         season=SEASON,
@@ -50,7 +52,37 @@ def fetch_advanced_stats():
         measure_type_detailed_defense="Advanced",
         per_mode_detailed="PerGame",
     ).get_data_frames()[0]
-    return df[["PLAYER_ID", "TS_PCT", "OFF_RATING", "DEF_RATING"]]
+    return df[["PLAYER_ID", "TS_PCT"]]
+
+
+def fetch_on_off_ratings():
+    print("Fetching on/off court ratings for all 30 teams...")
+    all_teams = teams.get_teams()
+    frames = []
+    for team in all_teams:
+        try:
+            time.sleep(DELAY)
+            dfs = TeamPlayerOnOffSummary(
+                team_id=team["id"],
+                season=SEASON,
+                season_type_all_star="Regular Season",
+            ).get_data_frames()
+            on_df  = dfs[1][["VS_PLAYER_ID", "OFF_RATING", "DEF_RATING"]].rename(
+                columns={"VS_PLAYER_ID": "PLAYER_ID", "OFF_RATING": "OFF_RATING_ON", "DEF_RATING": "DEF_RATING_ON"}
+            )
+            off_df = dfs[2][["VS_PLAYER_ID", "OFF_RATING", "DEF_RATING"]].rename(
+                columns={"VS_PLAYER_ID": "PLAYER_ID", "OFF_RATING": "OFF_RATING_OFF", "DEF_RATING": "DEF_RATING_OFF"}
+            )
+            merged = on_df.merge(off_df, on="PLAYER_ID")
+            frames.append(merged)
+            print(f"  {team['abbreviation']}: {len(merged)} players")
+        except Exception as e:
+            print(f"  {team['abbreviation']}: skipped ({e})")
+
+    combined = pd.concat(frames, ignore_index=True).drop_duplicates("PLAYER_ID")
+    combined["net_off_rating"] = combined["OFF_RATING_ON"] - combined["OFF_RATING_OFF"]
+    combined["net_def_rating"] = combined["DEF_RATING_ON"] - combined["DEF_RATING_OFF"]
+    return combined[["PLAYER_ID", "net_off_rating", "net_def_rating"]]
 
 
 def fetch_on_ball_defense():
@@ -117,20 +149,22 @@ def fetch_combine_stats():
 def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-    bio = fetch_bio_stats()
-    base = fetch_base_stats()
+    bio      = fetch_bio_stats()
+    base     = fetch_base_stats()
     advanced = fetch_advanced_stats()
-    defense = fetch_on_ball_defense()
-    hustle = fetch_hustle_stats()
-    combine = fetch_combine_stats()
+    on_off   = fetch_on_off_ratings()
+    defense  = fetch_on_ball_defense()
+    hustle   = fetch_hustle_stats()
+    combine  = fetch_combine_stats()
 
     df = (
         bio
-        .merge(base, on="PLAYER_ID", how="left")
+        .merge(base,     on="PLAYER_ID", how="left")
         .merge(advanced, on="PLAYER_ID", how="left")
-        .merge(defense, on="PLAYER_ID", how="left")
-        .merge(hustle, on="PLAYER_ID", how="left")
-        .merge(combine, on="PLAYER_ID", how="left")
+        .merge(on_off,   on="PLAYER_ID", how="left")
+        .merge(defense,  on="PLAYER_ID", how="left")
+        .merge(hustle,   on="PLAYER_ID", how="left")
+        .merge(combine,  on="PLAYER_ID", how="left")
     )
 
     df = df.rename(columns={
@@ -139,6 +173,8 @@ def main():
         "AGE":             "age",
         "PLAYER_HEIGHT":          "height",
         "PLAYER_WEIGHT":          "weight",
+        "GP":                     "gp",
+        "MIN":                    "min_pg",
         "PTS":                    "ppg",
         "TS_PCT":                 "ts_pct",
         "ON_BALL_DEF_FG_PCT":     "on_ball_def_fg_pct",
@@ -146,9 +182,7 @@ def main():
         "REB":                    "reb",
         "AST":                    "ast",
         "TOV":                    "tov",
-        "OFF_RATING":             "off_rating",
         "STL":                    "stl",
-        "DEF_RATING":             "def_rating",
         "MAX_VERTICAL_LEAP":      "combine_max_vertical",
         "LANE_AGILITY_TIME":      "combine_lane_agility",
         "CHARGES_DRAWN":          "charges_drawn",
@@ -158,9 +192,10 @@ def main():
 
     output_cols = [
         "PLAYER_ID", "name", "team", "height", "weight", "age",
+        "gp", "min_pg",
         "ppg", "ts_pct", "on_ball_def_fg_pct",
         "blk", "reb", "ast", "tov",
-        "off_rating", "stl", "def_rating",
+        "net_off_rating", "stl", "net_def_rating",
         "combine_max_vertical", "combine_lane_agility",
         "charges_drawn", "loose_balls_recovered", "box_outs",
     ]
