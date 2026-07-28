@@ -48,6 +48,7 @@ def main():
     n = pd.DataFrame(index=nba.index)
     n["height"]               = min_max_norm(nba["height"])
     n["weight"]               = min_max_norm(nba["weight"])
+    #n["min"]                  = min_max_norm(nba["min"])
     n["ppg"]                  = min_max_norm(nba["ppg"])
     n["ts_pct"]               = min_max_norm(nba["ts_pct"])
     n["on_ball_def_fg_pct"]   = 1 - min_max_norm(nba["on_ball_def_fg_pct"])  # inverted: lower opp FG% = better
@@ -61,7 +62,12 @@ def main():
     n["charges_per_min"]          = min_max_norm(nba["charges_drawn"]        / nba["min_pg"])
     n["loose_balls_per_min"]      = min_max_norm(nba["loose_balls_recovered"] / nba["min_pg"])
     n["box_outs_per_min"]         = min_max_norm(nba["box_outs"]              / nba["min_pg"])
+    n["charges"]          = min_max_norm(nba["charges_drawn"])
+    n["loose_balls"]      = min_max_norm(nba["loose_balls_recovered"])
+    n["box_outs"]         = min_max_norm(nba["box_outs"])
     n["stl_per_min"]              = min_max_norm(nba["stl"]                   / nba["min_pg"])
+    # avg speed
+    n["avg_speed"]                = min_max_norm(nba["avg_speed"])
 
     # --- Derive composite stats ---
     hp         = n["height"] * n["weight"]
@@ -69,7 +75,8 @@ def main():
     defense    = 0.50 * n["on_ball_def_fg_pct"] + 0.20 * n["blk"] + 0.30 * n["reb"]
     sp_attack  = 0.50 * n["ast_minus_tov"]       + 0.50 * n["net_off_rating"]
     sp_defense = 0.20 * n["stl"]                 + 0.80 * n["net_def_rating"] 
-    speed      = 0.3 * n["charges_per_min"] + 0.3 * n["loose_balls_per_min"] + 0.10 * n["box_outs_per_min"] + 0.3 * n["stl_per_min"]
+    speed      = 0.3 * n["avg_speed"] + 0.3 * n["loose_balls"] + 0.3 * n["charges"] + 0.1 * n["box_outs"]
+    #0.3 * n["charges_per_min"] + 0.3 * n["loose_balls_per_min"] + 0.10 * n["box_outs_per_min"] + 0.3 * n["stl_per_min"]
 
     # --- Post-map: percentile rank among NBA players → Pokémon stat distribution ---
     out = nba[["PLAYER_ID", "name", "team"]].copy()

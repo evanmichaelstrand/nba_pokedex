@@ -56,6 +56,9 @@ def main():
     out["pokemon_speed"]          = matched["speed"].values
     out["pokemon_base_stat_total"]= matched["base_stat_total"].values
     out["total_stat_difference"]  = np.sqrt(total_diff[np.arange(len(nba)), best_idx]).round(1)
+    out["match_quality_percentile"] = (
+        out["total_stat_difference"].rank(ascending=False, pct=True) * 100
+    ).round(1)
 
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     out.to_csv(OUTPUT_FILE, index=False)

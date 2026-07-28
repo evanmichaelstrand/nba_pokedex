@@ -5,6 +5,7 @@ from nba_api.stats.endpoints import (
     LeagueDashPlayerBioStats,
     LeagueDashPlayerStats,
     LeagueDashPtDefend,
+    LeagueDashPtStats,
     LeagueHustleStatsPlayer,
     DraftCombineStats,
     TeamPlayerOnOffSummary,
@@ -103,6 +104,19 @@ def fetch_on_ball_defense():
     )
 
 
+def fetch_speed_stats():
+    print("Fetching average player speed...")
+    time.sleep(DELAY)
+    df = LeagueDashPtStats(
+        season=SEASON,
+        season_type_all_star="Regular Season",
+        player_or_team="Player",
+        pt_measure_type="SpeedDistance",
+        per_mode_simple="PerGame",
+    ).get_data_frames()[0]
+    return df[["PLAYER_ID", "AVG_SPEED"]]
+
+
 def fetch_hustle_stats():
     print("Fetching hustle stats (charges, loose balls, box outs)...")
     time.sleep(DELAY)
@@ -154,6 +168,7 @@ def main():
     advanced = fetch_advanced_stats()
     on_off   = fetch_on_off_ratings()
     defense  = fetch_on_ball_defense()
+    speed    = fetch_speed_stats()
     hustle   = fetch_hustle_stats()
     combine  = fetch_combine_stats()
 
@@ -163,6 +178,7 @@ def main():
         .merge(advanced, on="PLAYER_ID", how="left")
         .merge(on_off,   on="PLAYER_ID", how="left")
         .merge(defense,  on="PLAYER_ID", how="left")
+        .merge(speed,    on="PLAYER_ID", how="left")
         .merge(hustle,   on="PLAYER_ID", how="left")
         .merge(combine,  on="PLAYER_ID", how="left")
     )
@@ -178,6 +194,7 @@ def main():
         "PTS":                    "ppg",
         "TS_PCT":                 "ts_pct",
         "ON_BALL_DEF_FG_PCT":     "on_ball_def_fg_pct",
+        "AVG_SPEED":              "avg_speed",
         "BLK":                    "blk",
         "REB":                    "reb",
         "AST":                    "ast",
@@ -193,7 +210,7 @@ def main():
     output_cols = [
         "PLAYER_ID", "name", "team", "height", "weight", "age",
         "gp", "min_pg",
-        "ppg", "ts_pct", "on_ball_def_fg_pct",
+        "ppg", "ts_pct", "on_ball_def_fg_pct", "avg_speed",
         "blk", "reb", "ast", "tov",
         "net_off_rating", "stl", "net_def_rating",
         "combine_max_vertical", "combine_lane_agility",
