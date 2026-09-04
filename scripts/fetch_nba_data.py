@@ -15,7 +15,7 @@ from nba_api.stats.static import teams
 
 from season_utils import season_to_compact
 
-SEASON = "2024-25"
+SEASON = "2025-26"
 DELAY = 1.0
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUTPUT_DIR = os.path.join(PROJECT_ROOT, "data", "raw")
