@@ -1,3 +1,4 @@
+import argparse
 import os
 import time
 import pandas as pd
@@ -12,9 +13,12 @@ from nba_api.stats.endpoints import (
 )
 from nba_api.stats.static import teams
 
-SEASON = "2025-26"
+from season_utils import season_to_compact
+
+SEASON = "2024-25"
 DELAY = 1.0
-OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "raw")
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+OUTPUT_DIR = os.path.join(PROJECT_ROOT, "data", "raw")
 
 
 def fetch_bio_stats():
@@ -33,7 +37,7 @@ def fetch_bio_stats():
 
 
 def fetch_base_stats():
-    print("Fetching base stats (PPG, REB, AST, STL, BLK, TOV)...")
+    print("Fetching base stats (PPG, REB, AST, STL, BLK, TOV, shooting splits)...")
     time.sleep(DELAY)
     df = LeagueDashPlayerStats(
         season=SEASON,
@@ -41,7 +45,25 @@ def fetch_base_stats():
         measure_type_detailed_defense="Base",
         per_mode_detailed="PerGame",
     ).get_data_frames()[0]
-    return df[["PLAYER_ID", "GP", "MIN", "PTS", "REB", "AST", "STL", "BLK", "TOV"]]
+    df = df[[
+        "PLAYER_ID", "GP", "MIN", "PTS", "REB", "AST", "STL", "BLK", "TOV",
+        "FGM", "FGA", "FG3M", "FG3A", "FG3_PCT",
+    ]].copy()
+    df["fg2a"] = df["FGA"] - df["FG3A"]
+    df["fg2_pct"] = (df["FGM"] - df["FG3M"]) / df["fg2a"]
+    return df.rename(columns={"FG3A": "fg3a", "FG3_PCT": "fg3_pct"}).drop(columns=["FGM", "FG3M"])
+
+
+def fetch_total_minutes():
+    print("Fetching total minutes played...")
+    time.sleep(DELAY)
+    df = LeagueDashPlayerStats(
+        season=SEASON,
+        season_type_all_star="Regular Season",
+        measure_type_detailed_defense="Base",
+        per_mode_detailed="Totals",
+    ).get_data_frames()[0]
+    return df[["PLAYER_ID", "MIN"]].rename(columns={"MIN": "total_min"})
 
 
 def fetch_advanced_stats():
@@ -104,6 +126,42 @@ def fetch_on_ball_defense():
     )
 
 
+def fetch_interior_defense():
+    print("Fetching interior (rim) defensive FG%...")
+    time.sleep(DELAY)
+    df = LeagueDashPtDefend(
+        season=SEASON,
+        season_type_all_star="Regular Season",
+        defense_category="Less Than 6Ft",
+        per_mode_simple="PerGame",
+    ).get_data_frames()[0]
+    return (
+        df[["CLOSE_DEF_PERSON_ID", "LT_06_PCT"]]
+        .rename(columns={
+            "CLOSE_DEF_PERSON_ID": "PLAYER_ID",
+            "LT_06_PCT": "INTERIOR_DEF_FG_PCT",
+        })
+    )
+
+
+def fetch_perimeter_defense():
+    print("Fetching perimeter (3-point) defensive FG%...")
+    time.sleep(DELAY)
+    df = LeagueDashPtDefend(
+        season=SEASON,
+        season_type_all_star="Regular Season",
+        defense_category="3 Pointers",
+        per_mode_simple="PerGame",
+    ).get_data_frames()[0]
+    return (
+        df[["CLOSE_DEF_PERSON_ID", "FG3_PCT"]]
+        .rename(columns={
+            "CLOSE_DEF_PERSON_ID": "PLAYER_ID",
+            "FG3_PCT": "PERIMETER_DEF_FG_PCT",
+        })
+    )
+
+
 def fetch_speed_stats():
     print("Fetching average player speed...")
     time.sleep(DELAY)
@@ -128,7 +186,8 @@ def fetch_hustle_stats():
     return df[["PLAYER_ID", "CHARGES_DRAWN", "LOOSE_BALLS_RECOVERED", "BOX_OUTS"]]
 
 
-def fetch_combine_stats():
+# turning this off, not used in v1
+'''def fetch_combine_stats():
     print("Fetching draft combine stats (2000-01 – 2024-25)...")
     seasons = [f"{y}-{str(y + 1)[-2:]}" for y in range(2000, 2025)]
     frames = []
@@ -157,30 +216,40 @@ def fetch_combine_stats():
         .groupby("PLAYER_ID", as_index=False)
         .last()
     )
-    return combined[["PLAYER_ID", "MAX_VERTICAL_LEAP", "LANE_AGILITY_TIME"]]
+    return combined[["PLAYER_ID", "MAX_VERTICAL_LEAP", "LANE_AGILITY_TIME"]]'''
 
 
-def main():
+def main(season=None):
+    global SEASON
+    if season:
+        SEASON = season
+
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-    bio      = fetch_bio_stats()
-    base     = fetch_base_stats()
-    advanced = fetch_advanced_stats()
-    on_off   = fetch_on_off_ratings()
-    defense  = fetch_on_ball_defense()
-    speed    = fetch_speed_stats()
-    hustle   = fetch_hustle_stats()
-    combine  = fetch_combine_stats()
+    bio               = fetch_bio_stats()
+    base              = fetch_base_stats()
+    total_min         = fetch_total_minutes()
+    advanced          = fetch_advanced_stats()
+    on_off            = fetch_on_off_ratings()
+    defense           = fetch_on_ball_defense()
+    interior_defense  = fetch_interior_defense()
+    perimeter_defense = fetch_perimeter_defense()
+    speed             = fetch_speed_stats()
+    hustle            = fetch_hustle_stats()
+    #combine           = fetch_combine_stats()
 
     df = (
         bio
-        .merge(base,     on="PLAYER_ID", how="left")
-        .merge(advanced, on="PLAYER_ID", how="left")
-        .merge(on_off,   on="PLAYER_ID", how="left")
-        .merge(defense,  on="PLAYER_ID", how="left")
-        .merge(speed,    on="PLAYER_ID", how="left")
-        .merge(hustle,   on="PLAYER_ID", how="left")
-        .merge(combine,  on="PLAYER_ID", how="left")
+        .merge(base,              on="PLAYER_ID", how="left")
+        .merge(total_min,         on="PLAYER_ID", how="left")
+        .merge(advanced,          on="PLAYER_ID", how="left")
+        .merge(on_off,            on="PLAYER_ID", how="left")
+        .merge(defense,           on="PLAYER_ID", how="left")
+        .merge(interior_defense,  on="PLAYER_ID", how="left")
+        .merge(perimeter_defense, on="PLAYER_ID", how="left")
+        .merge(speed,             on="PLAYER_ID", how="left")
+        .merge(hustle,            on="PLAYER_ID", how="left")
+        #.merge(combine,           on="PLAYER_ID", how="left")
     )
 
     df = df.rename(columns={
@@ -194,14 +263,16 @@ def main():
         "PTS":                    "ppg",
         "TS_PCT":                 "ts_pct",
         "ON_BALL_DEF_FG_PCT":     "on_ball_def_fg_pct",
+        "INTERIOR_DEF_FG_PCT":    "interior_def_fg_pct",
+        "PERIMETER_DEF_FG_PCT":   "perimeter_def_fg_pct",
         "AVG_SPEED":              "avg_speed",
         "BLK":                    "blk",
         "REB":                    "reb",
         "AST":                    "ast",
         "TOV":                    "tov",
         "STL":                    "stl",
-        "MAX_VERTICAL_LEAP":      "combine_max_vertical",
-        "LANE_AGILITY_TIME":      "combine_lane_agility",
+        #"MAX_VERTICAL_LEAP":      "combine_max_vertical",
+        #"LANE_AGILITY_TIME":      "combine_lane_agility",
         "CHARGES_DRAWN":          "charges_drawn",
         "LOOSE_BALLS_RECOVERED":  "loose_balls_recovered",
         "BOX_OUTS":               "box_outs",
@@ -209,20 +280,23 @@ def main():
 
     output_cols = [
         "PLAYER_ID", "name", "team", "height", "weight", "age",
-        "gp", "min_pg",
-        "ppg", "ts_pct", "on_ball_def_fg_pct", "avg_speed",
+        "gp", "min_pg", "total_min",
+        "ppg", "ts_pct", "fg2_pct", "fg2a", "fg3_pct", "fg3a",
+        "on_ball_def_fg_pct", "interior_def_fg_pct", "perimeter_def_fg_pct", "avg_speed",
         "blk", "reb", "ast", "tov",
         "net_off_rating", "stl", "net_def_rating",
-        "combine_max_vertical", "combine_lane_agility",
         "charges_drawn", "loose_balls_recovered", "box_outs",
     ]
     df = df[output_cols]
 
-    out_path = os.path.join(OUTPUT_DIR, "nba_player_stats.csv")
+    out_path = os.path.join(OUTPUT_DIR, f"nba_player_stats_{season_to_compact(SEASON)}.csv")
     df.to_csv(out_path, index=False)
     print(f"\nDone. {len(df)} players saved to {out_path}")
     print(df.head(3).to_string())
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Fetch NBA player stats for a season.")
+    parser.add_argument("--season", default=SEASON, help="Season in form 'YYYY-YY' (e.g. 2024-25)")
+    args = parser.parse_args()
+    main(args.season)

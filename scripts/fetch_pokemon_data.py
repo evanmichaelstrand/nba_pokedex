@@ -6,7 +6,8 @@ import pandas as pd
 BASE_URL = "https://pokeapi.co/api/v2"
 DELAY = 0.2
 MAX_POKEMON_ID = 1025  # National dex ends here; IDs above this are alternate forms
-OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "raw")
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+OUTPUT_DIR = os.path.join(PROJECT_ROOT, "data", "raw")
 
 
 def fetch_pokemon(pokemon_id):
