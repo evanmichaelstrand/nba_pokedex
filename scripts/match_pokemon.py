@@ -12,7 +12,7 @@ OUTPUT_DIR = os.path.join(PROJECT_ROOT, "data", "processed")
 STATS = ["hp", "attack", "defense", "sp_attack", "sp_defense", "speed"]
 
 
-def main(season="2024-25"):
+def main(season="2025-26"):
     compact = season_to_compact(season)
     input_nba = os.path.join(PROJECT_ROOT, "data", "processed", f"nba_pokemon_stats_{compact}.csv")
     output_file_unique = os.path.join(OUTPUT_DIR, f"nba_pokemon_matches_unique_{compact}.csv")
@@ -94,6 +94,6 @@ def main(season="2024-25"):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Match NBA players to Pokemon by base stats.")
-    parser.add_argument("--season", default="2024-25", help="Season in form 'YYYY-YY' (e.g. 2024-25)")
+    parser.add_argument("--season", default="2025-26", help="Season in form 'YYYY-YY' (e.g. 2025-26)")
     args = parser.parse_args()
     main(args.season)

@@ -297,6 +297,6 @@ def main(season=None):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Fetch NBA player stats for a season.")
-    parser.add_argument("--season", default=SEASON, help="Season in form 'YYYY-YY' (e.g. 2024-25)")
+    parser.add_argument("--season", default=SEASON, help="Season in form 'YYYY-YY' (e.g. 2025-26)")
     args = parser.parse_args()
     main(args.season)
