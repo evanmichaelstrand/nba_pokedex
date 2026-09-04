@@ -1,6 +1,6 @@
 # NBA Pokédex
 
-Match every NBA player to their closest Pokémon based on how their real stat profile compares to a Pokémon's base stats. Built for social content (Instagram/TikTok), not scouting reports.
+Match every NBA player to their closest Pokémon based on how their real stat profile compares to a Pokémon's base stats. 
 
 ## How it works
 
@@ -32,10 +32,10 @@ scripts/
   fetch_nba_data.py             # nba_api -> data/raw/nba_player_stats_<season>.csv
   transform_stats.py            # raw NBA stats -> data/processed/nba_pokemon_stats_<season>.csv
   match_pokemon.py              # stat matching -> data/processed/nba_pokemon_matches_{unique,true}_<season>.csv
-  season_utils.py               # shared season string helper (e.g. "2024-25" -> "2425")
+  season_utils.py               # shared season string helper (e.g. "2025-26" -> "2526")
 ```
 
-`<season>` in filenames is the compact form of the season string, e.g. `2024-25` → `2425`.
+`<season>` in filenames is the compact form of the season string, e.g. `2025-26` → `2526`.
 
 ## Setup
 
@@ -50,16 +50,16 @@ Requires Python 3.9+.
 Run the full pipeline for a season:
 
 ```bash
-python master.py 2024-25
+python master.py 2025-26
 ```
 
-Or run any step individually from the project root (each accepts an optional `--season`, default `2024-25`):
+Or run any step individually from the project root (each accepts an optional `--season`, default `2025-26`):
 
 ```bash
 python scripts/fetch_pokemon_data.py
-python scripts/fetch_nba_data.py --season 2024-25
-python scripts/transform_stats.py --season 2024-25
-python scripts/match_pokemon.py --season 2024-25
+python scripts/fetch_nba_data.py --season 2025-26
+python scripts/transform_stats.py --season 2025-26
+python scripts/match_pokemon.py --season 2025-26
 ```
 
 ## Output
