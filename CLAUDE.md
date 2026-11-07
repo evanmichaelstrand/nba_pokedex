@@ -15,6 +15,10 @@ Each algorithm version is a fully self-contained folder (its own code, `requirem
 
 When adding a version, create a new sibling folder rather than editing an existing one. Update this file as v2 takes shape.
 
+## NBA stat availability
+
+`v2/docs/stat_catalog.md` records which stats nba_api can actually provide (endpoint, params, columns, measured coverage, quirks). For any "is stat X available?" question, use the `check-stat-feasibility` skill (`.claude/skills/check-stat-feasibility/`), which checks the catalog, searches nba_api source kept at `C:\Users\evanm\.cache\nba_api_src`, verifies with a live call via its `probe.py`, and updates the catalog. Don't rely on the nba_api docs alone; they omit columns and known breakages.
+
 ## v1
 
 Run from the repo root (scripts resolve `data/` relative to their own folder, so the working directory doesn't matter):
