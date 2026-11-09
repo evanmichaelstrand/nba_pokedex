@@ -33,6 +33,21 @@ Which NBA stats can be pulled via `nba_api`, how, and how complete they are. Mai
 | Shots contested (defense) | `LeagueHustleStatsPlayer` `CONTESTED_SHOTS` (2016-17+) | Available |
 | Shots taken while tightly guarded (offense) | `LeagueDashPlayerPtShot` by `close_def_dist_range_nullable` (2013-14+) | Available |
 
+## Season availability (verified 2026-11-08)
+
+First season with complete league-wide data, found by probing backward:
+
+| Endpoint | First full season | Earlier seasons |
+|---|---|---|
+| `LeagueDashPlayerStats` (Base, Misc, Advanced) | 1996-97 | stats.nba.com starts here |
+| `ShotChartDetail` (incl. dunk `ACTION_TYPE` labels) | 1996-97 | — |
+| `TeamPlayerOnOffSummary` | 2007-08 | 2006-07 and earlier: 0 rows |
+| `SynergyPlayTypes` | 2012-13 | 2011-12 and earlier: 0 rows |
+| Player tracking: `LeagueDashPtStats` Possessions, `LeagueDashPtDefend`, `LeagueDashPlayerPtShot` | 2013-14 | 2012-13: 0 rows. Other `LeagueDashPtStats` measure types (SpeedDistance, Drives, Rebounding) not probed; likely the same start. |
+| `LeagueHustleStatsPlayer` | 2016-17 | 2015-16 partial (147 players); 2014-15 and earlier: 0 rows |
+| `MatchupsRollup` | 2017-18 | 2016-17 fragment (291 defenders, median 60 possessions); 2015-16 and earlier: 0 rows |
+| `DunkScoreLeaders` | 2024-25 | 2023-24 and earlier: HTTP 500 |
+
 ## Endpoints
 
 ### DunkScoreLeaders
