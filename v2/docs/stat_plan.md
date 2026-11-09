@@ -136,6 +136,22 @@ First season each stat has complete data (verified 2026-11-08 by probing each en
 
 Shortened seasons affect counting stats and the 500-minute filter: 2011-12 (66 games), 2019-20 (65–75), 2020-21 (72). Per-36 rates or ranking players within each season handles this.
 
+## Standardization
+
+How each raw stat is put on a common scale before it's combined into a composite (decided 2026-11-09).
+
+1. **Population:** qualified players only (500+ total minutes). Means and standard deviations are computed over them, per season, so bench players don't drag the averages.
+2. **Scale: plain z-score for every input:** `z = (x − mean) / sd`. No min-max. Every input ends on the same scale, so a composite weight means the same thing for each input.
+3. **Direction:** flip the sign (`z → −z`) for stats where lower is better: interior defensive FG%, net defensive rating, matchup FG% guarding guards. (v1 used `1 − x` on min-max values.)
+4. **Cap at ±3:** clip each input's z to [−3, 3] before weighting, so one extreme value (e.g. Clingan's 1,038 contests, z > 5) can't dominate a composite. This does the outlier work a log transform would otherwise be needed for.
+5. **No log transforms by default.** A log is not a neutral cleanup: it stretches differences among low values and compresses high ones. Example (2025-26): logging dunks and PPG moves Jalen Brunson from the 75th to the 37th percentile in Attack, because his 0 dunks go from z −0.82 to −1.99 and his 26.0 PPG from +2.34 to +1.82. A log is applied only as a deliberate per-stat choice when differences at the low end should matter as much as at the top, with the reason recorded here. Currently: none.
+6. **Composites:** weighted average of the capped z-scores. Composites are not re-standardized, because the next step uses only their order.
+7. **Mapping to Pokémon stats:** unchanged from v1. Rank each composite among qualified players (percentile), then take the Pokémon stat value at that percentile of the Pokémon distribution for that stat.
+
+Evidence (2025-26, equal weights): plain z vs. log-then-z vs. rank-based normal scores rank players almost identically (rank correlation 0.975–1.00 per composite; median player moves 0–3 percentiles). The choice mainly affects individual players with lopsided inputs, which is why logs are opt-in.
+
+Still to decide: weights per composite, and how a null input (below its minimum sample) affects its composite: re-weight the remaining inputs, or impute z = 0 (league average).
+
 ## Collection summary
 
 About 43 API calls per season:
@@ -158,4 +174,4 @@ Cross-cutting issues to settle before writing the script:
 - **Nulls from minimum samples:** decide how a null input affects its composite (e.g. average the remaining inputs with re-normalized weights).
 - **Opposing inputs:** OREB vs. dribbles per touch (Speed) pull in opposite directions by position, compressing that composite.
 - **Redundant inputs:** steals vs. deflections (0.89), blocks vs. contests (0.82).
-- **Lower-is-better stats:** interior defensive FG%, net defensive rating and matchup FG% guarding guards must be inverted.
+- **Lower-is-better stats:** interior defensive FG%, net defensive rating and matchup FG% guarding guards must be inverted (sign flip after z-scoring; see [Standardization](#standardization)).
