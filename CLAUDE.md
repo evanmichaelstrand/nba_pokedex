@@ -15,6 +15,22 @@ Each algorithm version is a fully self-contained folder (its own code, `requirem
 
 When adding a version, create a new sibling folder rather than editing an existing one. Update this file as v2 takes shape.
 
+## v2
+
+In progress: data fetching exists; transform and matching do not yet.
+
+```bash
+pip install -r v2/requirements.txt
+python v2/scripts/fetch_nba_data.py --season 2025-26   # ~45 calls, ~2 min -> v2/data/raw/nba_player_stats_<compact>.csv
+python v2/scripts/fetch_pokemon_data.py [--forms none|mega|all]   # ~1,100 calls, several minutes -> v2/data/raw/pokemon_stats.csv
+```
+
+- `v2/docs/stat_plan.md` is the source of truth for which NBA stats feed each Pokémon stat, per-stat minimum samples, and the first season each stat exists. `fetch_nba_data.py` mirrors it in `FIRST_SEASON` and `MIN_SAMPLES`; keep them in sync.
+- The NBA fetch keeps all players (the 500-minute filter belongs in the transform step) but applies minimum samples: below the minimum, that stat is null. Sources that don't exist yet for an older season are skipped and their columns left null.
+- Traded players: on/off ratings are combined across teams weighted by minutes, and `team` is the team with the most minutes (falls back to last team before 2007-08, when on/off data starts). v1 got this wrong.
+- Dunks come from the league-wide shot chart fetched month by month, because a single call is silently capped at 102,400 rows.
+- Pokémon species are discovered from PokéAPI's generation list (new generations appear automatically); Mega forms are included by default with PokéAPI's own ids (10000+). The script exits non-zero if any Pokémon fails after retries.
+
 ## NBA stat availability
 
 `v2/docs/stat_catalog.md` records which stats nba_api can actually provide (endpoint, params, columns, measured coverage, quirks). For any "is stat X available?" question, use the `check-stat-feasibility` skill (`.claude/skills/check-stat-feasibility/`), which checks the catalog, searches nba_api source kept at `C:\Users\evanm\.cache\nba_api_src`, verifies with a live call via its `probe.py`, and updates the catalog. Don't rely on the nba_api docs alone; they omit columns and known breakages.
