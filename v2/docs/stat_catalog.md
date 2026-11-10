@@ -131,7 +131,25 @@ Year-to-year correlation for players qualified in both 2024-25 and 2025-26 (n≈
 | Matchup pts per 100 poss vs. guards | 0.93 | 1,321 | 58th | Measures assignment (0.97 with opponent usage) |
 | 3PT contests per 36 (hustle) | 0.80 | — | 71st | Activity, not efficiency; tilts to bigs (0.44 with height) |
 | Deflections per 36 | 0.83 | — | 82nd | 0.88 with steals |
-| Steals per 36 (reference) | 0.74 | — | — | |
+| Steals per 36 (reference) | 0.74 | — | 90th | |
+
+Perimeter-adjacent candidates (verified 2026-11-09 on the same two seasons; "usage" = opponents' FGA per 100 partial possessions while guarded, which measures assignment rather than skill):
+
+| Stat | Year-to-year | vs. height | vs. steals | vs. usage | Stoppers | Notes |
+|---|---|---|---|---|---|---|
+| Charges drawn per 36 (hustle `CHARGES_DRAWN`) | 0.71 | −0.18 | 0.02 | −0.07 | 64th | Stable and independent of steals, height and assignment |
+| Deflections per 36 | 0.83 | −0.19 | 0.88 | −0.13 | 82nd | Same skill as steals |
+| 3PT contests per 36 (hustle `CONTESTED_SHOTS_3PT`) | 0.80 | 0.44 | −0.03 | 0.58 | 71st | Leaders are bigs (Clingan, Jaylin Williams, Missi) |
+| Turnovers forced per 100 poss. guarding guards (`MatchupsRollup` `MATCHUP_TOV`) | 0.68 | 0.40 | 0.20 | 0.65 | 63rd | Leaders are bigs (Cardwell, Bitadze); partly assignment |
+| Defensive loose balls per 36 (hustle `DEF_LOOSE_BALLS_RECOVERED`) | 0.41 | −0.21 | 0.47 | −0.17 | 77th | Noisy |
+| 3PA defended per 36 as closest defender (`LeagueDashPtDefend` 3 Pointers `FG3A`) | 0.56 | 0.11 | 0.08 | 0.30 | 73rd | Volume, moderately stable |
+| Share of matchup time on guards (`PERCENT_OF_TIME`, G) | 0.97 | −0.85 | 0.24 | −0.85 | 62nd | Role (position), not skill |
+| 3PA / FTA / assists allowed per 100 poss. guarding guards | 0.77–0.85 | 0.52–0.67 | ≈ −0.1 | 0.71–0.90 | 42nd–62nd | Assignment: tracks who they guard |
+| Share of guards' shots that are 3s while guarded | 0.72 | −0.49 | 0.19 | −0.64 | 27th | Assignment; stoppers rank low |
+| Share of shots defended that are 3s (`FREQ`, 3 Pointers) | 0.81 | −0.65 | 0.21 | −0.73 | 69th | Role (perimeter vs. interior) |
+| Opp 3P% guarding guards (`MATCHUP_FG3_PCT`, G) | −0.09 | −0.02 | −0.02 | −0.04 | 54th | Pure noise |
+
+No closeout-quality stat exists in nba_api; 3PT contests (volume) are the closest.
 
 ### DraftCombineStats (also `DraftCombineDrillResults`, `DraftCombinePlayerAnthro`)
 - **Status:** Partial. Verified 2026-11-07.
@@ -181,5 +199,6 @@ Year-to-year correlation for players qualified in both 2024-25 and 2025-26 (n≈
 - In-game top speed, acceleration, change of direction, deceleration: only average speed is exposed. *(checked 2026-10-26)*
 - Jump height outside dunks (rebounds, blocks, jump shots). *(checked 2026-10-26)*
 - Screen navigation (how well a defender gets over/under/through screens): no screen-level defensive data in any endpoint. Only `screenAssists` (offense) and `switchesOn` (per-game matchups) mention screens/switches. Synergy defensive play types are the closest proxy, but their PPP is noise. *(checked 2026-11-07)*
+- Closeout quality (speed/distance of closeouts, shots altered on the perimeter): no endpoint. 3PT contests per 36 (hustle) is the only closeout-adjacent volume stat; opponent 3P% allowed is noise (year-to-year −0.09 to −0.01). *(checked 2026-11-09)*
 - Every cut a player makes, including cuts where they don't get the ball: only finished cuts (Synergy) or cutting shots (shot chart) exist. *(checked 2026-11-07)*
 - Dunk tracking before 2024-25. *(checked 2026-11-07)*

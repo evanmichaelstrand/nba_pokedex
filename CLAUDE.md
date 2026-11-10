@@ -17,13 +17,20 @@ When adding a version, create a new sibling folder rather than editing an existi
 
 ## v2
 
-In progress: data fetching exists; transform and matching do not yet.
+All four stages exist (no `master.py` runner yet); run them in order.
 
 ```bash
 pip install -r v2/requirements.txt
 python v2/scripts/fetch_nba_data.py --season 2025-26   # ~45 calls, ~2 min -> v2/data/raw/nba_player_stats_<compact>.csv
 python v2/scripts/fetch_pokemon_data.py [--forms none|mega|all]   # ~1,100 calls, several minutes -> v2/data/raw/pokemon_stats.csv
+python v2/scripts/transform_stats.py --season 2025-26  # seconds -> v2/data/processed/nba_pokemon_stats_<compact>.csv + nba_input_scores_<compact>.csv
+python v2/scripts/match_pokemon.py --season 2025-26    # seconds -> v2/data/processed/nba_pokemon_matches_{unique,true}_<compact>.csv
 ```
+
+- `--per36` on both `transform_stats.py` and `match_pokemon.py` runs a variant where per-game stats (`PER_GAME_TO_PER36`, currently PPG) become per-36; outputs are written as `*_per36_<compact>.csv` beside the default ones. HP stays totals in both.
+- Matching is v1's algorithm unchanged (BST-normalized Euclidean distance; greedy unique assignment and per-player best match), with player position and Pokémon generation / default-form columns added to the output.
+
+- The transform follows "Standardization" in `v2/docs/stat_plan.md`: 500+ minute filter, per-36 rates for counting stats (`PER36`), plain z-scores with sign flips for lower-is-better stats (`INVERT`), each capped at ±3, weighted average per composite (`COMPOSITES`, re-weighted when an input is null), then v1's percentile mapping onto the Pokémon distribution clipped to 20–150. Tuning happens in those constants at the top of `transform_stats.py`.
 
 - `v2/docs/stat_plan.md` is the source of truth for which NBA stats feed each Pokémon stat, per-stat minimum samples, and the first season each stat exists. `fetch_nba_data.py` mirrors it in `FIRST_SEASON` and `MIN_SAMPLES`; keep them in sync.
 - The NBA fetch keeps all players (the 500-minute filter belongs in the transform step) but applies minimum samples: below the minimum, that stat is null. Sources that don't exist yet for an older season are skipped and their columns left null.

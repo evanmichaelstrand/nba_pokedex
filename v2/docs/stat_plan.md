@@ -67,12 +67,14 @@ Notes:
 | Net defensive rating (season) | `TeamPlayerOnOffSummary` (same 30 calls as net offensive rating) → `DEF_RATING` on − off; combine traded players' teams weighted by `MIN` | — (more minutes don't make it more stable) | 2007-08 |
 | Steals (season) | Base `Totals` → `STL` | — | 1996-97 |
 | Deflections (season) | `LeagueHustleStatsPlayer`, `per_mode_time='Totals'` → `DEFLECTIONS` | — | 2016-17 |
+| Charges drawn (season) | Same hustle call → `CHARGES_DRAWN` | — | 2016-17 |
 | Matchup FG% guarding guards (season) | `MatchupsRollup`, `per_mode_simple='Totals'` → rows with `POSITION='G'` → `MATCHUP_FG_PCT` (also `MATCHUP_FGA`, `PARTIAL_POSS`); player ID column is `DEF_PLAYER_ID` | **100 FGA guarded** (`MATCHUP_FGA`; 9 of 378 null), a floor only; see note | **2017-18** |
 
 Notes:
 - **Traded players' on/off (applies to net offensive and net defensive rating):** a traded player appears in each team's `TeamPlayerOnOffSummary`. v1 kept only the first row it saw (`drop_duplicates`, team list order), not the main team. Example: Jaren Jackson Jr.'s v1 net defensive rating of −29.9 is from 3 games / 72 min with UTA; combining both teams by minutes gives −6.8. 49 qualified players were traded in 2025-26.
 - **Net defensive rating is noisy:** lower is better; invert. Year-to-year correlation 0.39 with the trade fix (0.33 in v1's data). Unlike net offensive rating, it doesn't get more stable with more minutes (0.39 at 500–1,000 on-court minutes, 0.33 at 1,500+), so a minimum wouldn't help. For comparison: steals 0.74, PPG 0.85.
-- **Steals and deflections overlap heavily:** per 36, correlation **0.89**. Together they effectively double-weight one skill. Options: keep both but split the weight, or keep one.
+- **Steals and deflections overlap heavily:** per 36, correlation **0.89**. Decided (2026-11-09): keep both at reduced weights (15 each) and add charges drawn.
+- **Charges drawn** (added 2026-11-09): per 36, year-to-year 0.71 and independent of steals (0.02), height (−0.18) and assignment (−0.07); known stoppers rank 64th (see the perimeter comparison in the catalog). Sparse: 162 of 378 qualified players drew none in 2025-26 (all sit at z −0.65), and 8 are capped at +3. Leaders: Jalen Brunson 29, Brandin Podziemski 23, Marcus Smart 20.
 - **Matchup FG% guarding guards** (replaces isolation defensive FG%, which was noise: year-to-year 0.02–0.24, median 32 FGA):
   - Opponent FG% on shots by guards while this player was the matched-up defender, across all possessions, not just isolations. Lower is better; invert.
   - Most stable perimeter-efficiency stat tested: year-to-year 0.31, about the same as net defensive rating (see the stability comparison in the catalog). Shot-based alternatives (v1's opponent 3PT FG%, beyond-15-ft FG%, Synergy perimeter play types) were all ~0.
@@ -126,7 +128,7 @@ First season each stat has complete data (verified 2026-11-08 by probing each en
 | 2007-08 | Net offensive / defensive rating | `TeamPlayerOnOffSummary` returns 0 rows for 2006-07 and earlier. |
 | 2012-13 | Transition points (Synergy) | 2011-12 and earlier return 0 rows. Fast-break points (`PTS_FB`, Base `Misc`) go back to 1996-97 as a substitute. |
 | 2013-14 | Interior defensive FG%, dribbles per touch | Player tracking starts 2013-14 (2012-13 returns 0 rows). |
-| 2016-17 | Shots contested, deflections, loose balls recovered | Hustle stats: 2015-16 is partial (147 players), 2014-15 and earlier empty. |
+| 2016-17 | Shots contested, deflections, charges drawn, loose balls recovered | Hustle stats: 2015-16 is partial (147 players), 2014-15 and earlier empty. |
 | **2017-18** | **Matchup FG% guarding guards** | 2016-17 is a fragment (291 defenders, median 60 possessions vs. ~3,150 in 2017-18). |
 
 **Limiting stat: matchup FG% guarding guards → the full plan runs back to 2017-18.** Earlier seasons need substitutions:
@@ -150,7 +152,12 @@ How each raw stat is put on a common scale before it's combined into a composite
 
 Evidence (2025-26, equal weights): plain z vs. log-then-z vs. rank-based normal scores rank players almost identically (rank correlation 0.975–1.00 per composite; median player moves 0–3 percentiles). The choice mainly affects individual players with lopsided inputs, which is why logs are opt-in.
 
-Still to decide: weights per composite, and how a null input (below its minimum sample) affects its composite: re-weight the remaining inputs, or impute z = 0 (league average).
+Defaults implemented in `v2/scripts/transform_stats.py` (first version, 2026-11-09), all constants at the top of the script:
+- **Weights:** set by hand in `COMPOSITES` (Sp. Defense: net defensive rating 30, steals 15, deflections 15, charges drawn 10, matchup FG% guarding guards 30).
+- **Shrinkage:** matchup FG% guarding guards is shrunk toward the league average with k = 850 (`SHRINK`) and z-scored against the unshrunk spread, so its effective pull is ~0.22 of a full input.
+- **Null inputs:** re-weighted away (a player's composite averages the inputs they have).
+- **Per-36:** counting stats are converted to per-36-minute rates (`PER36`); HP's inputs and PPG are not. After this, no composite except HP correlates with minutes above 0.35. Side effect: efficient low-minute players can rate highly (e.g. Paul Reed, 901 min, top-10 total).
+- **Clip 20–150 (as v1):** ties the top ~3% at 150 (up to 11 players per stat in 2025-26). Raising `STAT_MAX` keeps them distinct.
 
 ## Collection summary
 

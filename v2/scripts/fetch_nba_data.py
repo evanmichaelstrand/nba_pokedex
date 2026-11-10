@@ -64,7 +64,7 @@ OUTPUT_COLS = [
     # Sp. Attack
     "fg3m", "net_off_rating", "ast_minus_tov", "ast", "tov",
     # Sp. Defense
-    "net_def_rating", "stl", "deflections", "matchup_fg_pct_vs_guards", "matchup_fga_vs_guards",
+    "net_def_rating", "stl", "deflections", "charges_drawn", "matchup_fg_pct_vs_guards", "matchup_fga_vs_guards",
     # Speed
     "oreb", "loose_balls_recovered", "transition_pts", "drib_per_touch", "touches",
     # Sample sizes / context
@@ -170,14 +170,14 @@ def fetch_interior_defense(season, start_year):
 
 
 def fetch_hustle(season, start_year):
-    print("Fetching hustle stats (contested shots, deflections, loose balls)...")
+    print("Fetching hustle stats (contested shots, deflections, charges, loose balls)...")
     if not available("hustle", start_year):
         return None
     df = call(LeagueHustleStatsPlayer, season=season, season_type_all_star="Regular Season",
               per_mode_time="Totals").get_data_frames()[0]
     return df.rename(columns={"CONTESTED_SHOTS": "contested_shots", "DEFLECTIONS": "deflections",
-                              "LOOSE_BALLS_RECOVERED": "loose_balls_recovered"})[
-        ["PLAYER_ID", "contested_shots", "deflections", "loose_balls_recovered"]]
+                              "CHARGES_DRAWN": "charges_drawn", "LOOSE_BALLS_RECOVERED": "loose_balls_recovered"})[
+        ["PLAYER_ID", "contested_shots", "deflections", "charges_drawn", "loose_balls_recovered"]]
 
 
 def fetch_on_off(season, start_year):
